@@ -1,0 +1,65 @@
+project:
+  name: "authorized-security-lab"
+  mode: "assessment" # assessment | ctf | lab
+
+target:
+  base_url: "http://127.0.0.1:8080"
+
+scope:
+  targets:
+    - "http://127.0.0.1:8080"
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "PATCH"
+    - "DELETE"
+    - "HEAD"
+    - "OPTIONS"
+  allowed_ports:
+    - 80
+    - 443
+    - 8080
+    - 8443
+    - 3000
+  allow_subdomains: false
+  allow_external_hosts: false
+  max_requests_per_minute: 60
+
+limits:
+  max_requests: 500
+  max_requests_per_minute: 60
+  max_iterations: 50
+  max_execution_time_seconds: 600
+
+crawler:
+  max_depth: 3
+  max_pages: 100
+  max_requests: 150
+  same_origin_only: true
+
+fuzz:
+  max_cases: 50
+  concurrency: 3
+
+agent:
+  model: "gemma-4-31b"
+  max_llm_calls: 50
+  context_token_budget: 12000
+  sliding_window_seconds: 60
+  input_tpm_limit: 16000
+  daily_requests_limit: 14000
+
+permissions:
+  allow_read: true
+  allow_active: true
+  allow_destructive: false
+
+http:
+  timeout_seconds: 10.0
+  max_redirects: 5
+  follow_redirects: true
+  max_response_bytes: 5242880 # 5 MB
+
+storage:
+  database_path: "agentic_burp.sqlite3"

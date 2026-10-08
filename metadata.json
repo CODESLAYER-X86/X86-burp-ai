@@ -1,0 +1,6 @@
+{
+  "name": "Agentic-Burp",
+  "description": "AI-assisted web security assessment platform with deterministic scope enforcement, HTTP proxy, crawler, repeater, fuzzer, and verified security detectors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
