@@ -171,3 +171,25 @@ Under the **"Sessions & Tokens"** tab in the Web UI:
 | `sqlite3.OperationalError: no such function: unixepoch` | System SQLite library is older than version 3.38. | Already handled: code uses standard `time.time()` parameterization. |
 | `429 Resource Exhausted` | Primary Gemini API key reached rate limits. | System automatically fails over to the next project in the multi-project pool with exponential backoff cooldowns. |
 | Port 3000 is already in use | Another service is using port 3000. | Run `npx vite --port 3001` or specify an alternate port. |
+
+---
+
+## Architecture Reference
+
+```text
+User / CLI / Web UI
+       ↓
+Assessment Engine
+       ↓
+Gemma 4 31B (Reasoning / Prioritization / Hypotheses)
+       ↓
+Structured Tool Decision
+       ↓
+Executor Security Gate (Scope, Permissions, Rate Limits, Budgets)
+       ↓
+Deterministic Tools (HTTP / Crawler / Repeater / Fuzzer / Detectors)
+       ↓
+Response Analysis & Evidence Collection
+       ↓
+Persistent SQLite Storage (Traffic, Findings, Audit Log)
+```
