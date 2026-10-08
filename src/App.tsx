@@ -6,6 +6,7 @@ import { ScopeTab } from './components/ScopeTab';
 import { CrawlerTab } from './components/CrawlerTab';
 import { RepeaterTab } from './components/RepeaterTab';
 import { FuzzerTab } from './components/FuzzerTab';
+import { SessionsTab } from './components/SessionsTab';
 import { FindingsTab } from './components/FindingsTab';
 import { QuotaMonitorTab } from './components/QuotaMonitorTab';
 import { LabTargetTab } from './components/LabTargetTab';
@@ -40,6 +41,7 @@ export default function App() {
         {activeTab === 'crawler' && <CrawlerTab engine={engine} />}
         {activeTab === 'repeater' && <RepeaterTab engine={engine} />}
         {activeTab === 'fuzzer' && <FuzzerTab engine={engine} />}
+        {activeTab === 'sessions' && <SessionsTab engine={engine} />}
         {activeTab === 'findings' && <FindingsTab engine={engine} />}
         {activeTab === 'quota' && <QuotaMonitorTab engine={engine} />}
         {activeTab === 'lab' && <LabTargetTab engine={engine} />}

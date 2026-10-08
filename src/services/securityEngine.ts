@@ -7,7 +7,9 @@ import {
   ScopePolicy,
   GeminiProjectQuota,
   AgentActivityEvent,
-  AssessmentPhase
+  AssessmentPhase,
+  SessionProfile,
+  AutoTokenRule
 } from '../types';
 
 export class SecurityEngineService {
@@ -65,6 +67,68 @@ export class SecurityEngineService {
       rolling_tpm_used: 120,
       cooldown_until: 0,
       consecutive_errors: 0,
+    },
+  ];
+
+  public sessionProfiles: SessionProfile[] = [
+    {
+      id: 'user_a',
+      name: 'User A (Alice / Tenant Owner)',
+      role: 'primary',
+      token: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMDEiLCJuYW1lIjoiQWxpY2UifQ.alice_sig',
+      tokenHeaderName: 'Authorization',
+      cookie: 'session_id=sess_alice_auth_token_9912',
+      csrfToken: 'csrf_token_alice_849204',
+      autoRefreshCsrf: true,
+      customHeaders: { 'X-Tenant-ID': 'tenant_alice_101' },
+    },
+    {
+      id: 'user_b',
+      name: 'User B (Bob / Cross-Tenant Attacker)',
+      role: 'secondary',
+      token: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMDIiLCJuYW1lIjoiQm9iIn0.bob_sig',
+      tokenHeaderName: 'Authorization',
+      cookie: 'session_id=sess_bob_auth_token_4411',
+      csrfToken: 'csrf_token_bob_194820',
+      autoRefreshCsrf: true,
+      customHeaders: { 'X-Tenant-ID': 'tenant_bob_102' },
+    },
+    {
+      id: 'unauth',
+      name: 'Unauthenticated (Anonymous Visitor)',
+      role: 'unauthenticated',
+      token: '',
+      tokenHeaderName: 'Authorization',
+      cookie: '',
+      csrfToken: '',
+      autoRefreshCsrf: false,
+      customHeaders: {},
+    },
+  ];
+
+  public activeSessionId: string = 'user_a';
+
+  public autoTokenRules: AutoTokenRule[] = [
+    {
+      id: 'rule_bearer',
+      name: 'Auto-Inject Authorization Bearer Token',
+      enabled: true,
+      ruleType: 'auto_inject_bearer',
+      headerName: 'Authorization',
+    },
+    {
+      id: 'rule_csrf',
+      name: 'Auto-Extract & Refresh CSRF Token',
+      enabled: true,
+      ruleType: 'auto_extract_csrf',
+      headerName: 'X-CSRF-Token',
+    },
+    {
+      id: 'rule_cookie',
+      name: 'Auto-Sync Session Cookie Jar',
+      enabled: true,
+      ruleType: 'match_and_replace',
+      headerName: 'Cookie',
     },
   ];
 
@@ -210,6 +274,73 @@ export class SecurityEngineService {
       this.logEvent('primary_target_changed', this.phase, `Active target set to: ${target}`);
       this.notify();
     }
+  }
+
+  public getActiveSession(): SessionProfile {
+    return this.sessionProfiles.find(s => s.id === this.activeSessionId) || this.sessionProfiles[0];
+  }
+
+  public setActiveSession(sessionId: string) {
+    if (this.sessionProfiles.some(s => s.id === sessionId)) {
+      this.activeSessionId = sessionId;
+      const s = this.getActiveSession();
+      this.logEvent('session_switched', this.phase, `Switched active testing identity to: ${s.name}`);
+      this.notify();
+    }
+  }
+
+  public updateSessionProfile(sessionId: string, updates: Partial<SessionProfile>) {
+    const idx = this.sessionProfiles.findIndex(s => s.id === sessionId);
+    if (idx !== -1) {
+      this.sessionProfiles[idx] = { ...this.sessionProfiles[idx], ...updates };
+      this.logEvent('session_profile_updated', this.phase, `Updated credentials for: ${this.sessionProfiles[idx].name}`);
+      this.notify();
+    }
+  }
+
+  public toggleAutoTokenRule(ruleId: string) {
+    const rule = this.autoTokenRules.find(r => r.id === ruleId);
+    if (rule) {
+      rule.enabled = !rule.enabled;
+      this.notify();
+    }
+  }
+
+  public applySessionRules(headers: Record<string, string>, sessionId?: string): Record<string, string> {
+    const targetSession = sessionId
+      ? (this.sessionProfiles.find(s => s.id === sessionId) || this.getActiveSession())
+      : this.getActiveSession();
+
+    const outputHeaders = { ...headers };
+
+    for (const rule of this.autoTokenRules) {
+      if (!rule.enabled) continue;
+
+      if (rule.ruleType === 'auto_inject_bearer') {
+        if (targetSession.token) {
+          outputHeaders[targetSession.tokenHeaderName || 'Authorization'] = targetSession.token;
+        } else if (targetSession.role === 'unauthenticated') {
+          delete outputHeaders['Authorization'];
+        }
+      } else if (rule.ruleType === 'auto_extract_csrf') {
+        if (targetSession.csrfToken) {
+          outputHeaders['X-CSRF-Token'] = targetSession.csrfToken;
+        }
+      } else if (rule.ruleType === 'match_and_replace') {
+        if (targetSession.cookie) {
+          outputHeaders['Cookie'] = targetSession.cookie;
+        } else if (targetSession.role === 'unauthenticated') {
+          delete outputHeaders['Cookie'];
+        }
+      }
+    }
+
+    // Merge custom headers
+    if (targetSession.customHeaders) {
+      Object.assign(outputHeaders, targetSession.customHeaders);
+    }
+
+    return outputHeaders;
   }
 
   public logEvent(event_type: string, phase: string, summary: string, details?: Record<string, any>) {

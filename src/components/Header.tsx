@@ -21,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'crawler', label: 'Crawler' },
     { id: 'repeater', label: 'Repeater' },
     { id: 'fuzzer', label: 'Fuzzer' },
+    { id: 'sessions', label: 'Sessions & Tokens' },
     { id: 'findings', label: `Findings (${engine.findings.length})` },
     { id: 'quota', label: 'Quota & Projects' },
     { id: 'lab', label: 'Lab Target' },

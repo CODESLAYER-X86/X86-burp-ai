@@ -13,6 +13,26 @@ export const RepeaterTab: React.FC<RepeaterTabProps> = ({ engine }) => {
   const [body, setBody] = useState('');
 
   const [response, setResponse] = useState<any>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(engine.activeSessionId);
+
+  const handleApplySessionTokens = (sessId: string) => {
+    setSelectedSessionId(sessId);
+    const session = engine.sessionProfiles.find(s => s.id === sessId);
+    if (!session) return;
+
+    // Automatically update the header text with the session's token and cookie
+    let newHeaders = `User-Agent: Agentic-Burp/1.0\nAccept: application/json`;
+    if (session.token) {
+      newHeaders += `\nAuthorization: ${session.token}`;
+    }
+    if (session.cookie) {
+      newHeaders += `\nCookie: ${session.cookie}`;
+    }
+    if (session.csrfToken) {
+      newHeaders += `\nX-CSRF-Token: ${session.csrfToken}`;
+    }
+    setHeaders(newHeaders);
+  };
 
   const handleSend = () => {
     // Parse headers
@@ -72,13 +92,31 @@ export const RepeaterTab: React.FC<RepeaterTabProps> = ({ engine }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Request Panel */}
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-white uppercase tracking-wider font-mono">
-              Request Editor
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-white uppercase tracking-wider font-mono">
+                Request Editor
+              </span>
+              <span className="text-[11px] text-neutral-400 font-mono hidden sm:inline">·</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-neutral-400 font-mono">Token / Identity:</span>
+                <select
+                  value={selectedSessionId}
+                  onChange={(e) => handleApplySessionTokens(e.target.value)}
+                  className="bg-neutral-950 border border-neutral-800 rounded px-2 py-0.5 text-xs font-mono text-amber-400 focus:outline-none"
+                >
+                  {engine.sessionProfiles.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <button
               onClick={handleSend}
-              className="px-3.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-500 rounded transition-colors whitespace-nowrap"
+              className="px-3.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-500 rounded transition-colors whitespace-nowrap self-end sm:self-auto"
             >
               Send Request
             </button>

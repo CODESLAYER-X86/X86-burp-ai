@@ -83,6 +83,28 @@ export interface ScopePolicy {
   max_requests_per_minute: number;
 }
 
+export interface SessionProfile {
+  id: string;
+  name: string;
+  role: 'primary' | 'secondary' | 'unauthenticated';
+  token: string;
+  tokenHeaderName: string; // e.g. Authorization, X-API-Key, X-Access-Token
+  cookie: string;
+  csrfToken?: string;
+  autoRefreshCsrf: boolean;
+  customHeaders: Record<string, string>;
+}
+
+export interface AutoTokenRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  ruleType: 'auto_inject_bearer' | 'auto_extract_csrf' | 'match_and_replace';
+  headerName?: string;
+  matchPattern?: string;
+  replaceValue?: string;
+}
+
 export interface GeminiProjectQuota {
   project_id: string;
   model: string;
