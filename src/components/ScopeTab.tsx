@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SecurityEngineService } from '../services/securityEngine';
-import { Shield, ShieldAlert, Check, AlertCircle } from 'lucide-react';
+import { Shield, ShieldAlert, Check, AlertCircle, Trash2, CheckCircle2 } from 'lucide-react';
 
 interface ScopeTabProps {
   engine: SecurityEngineService;
@@ -19,11 +19,18 @@ export const ScopeTab: React.FC<ScopeTabProps> = ({ engine }) => {
   };
 
   const handleAddTarget = () => {
-    if (newTarget && !engine.scopePolicy.targets.includes(newTarget)) {
-      engine.scopePolicy.targets.push(newTarget);
+    if (newTarget.trim()) {
+      engine.addTarget(newTarget.trim());
       setNewTarget('');
-      engine.logEvent('scope_updated', 'DISCOVERY', `Added authorized target: ${newTarget}`);
     }
+  };
+
+  const handleDeleteTarget = (targetToDelete: string) => {
+    engine.removeTarget(targetToDelete);
+  };
+
+  const handleSelectPrimary = (target: string) => {
+    engine.setPrimaryTarget(target);
   };
 
   return (
@@ -49,15 +56,51 @@ export const ScopeTab: React.FC<ScopeTabProps> = ({ engine }) => {
           </h3>
 
           <div className="space-y-2">
-            {engine.scopePolicy.targets.map((target, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between p-2.5 rounded border border-neutral-800 bg-neutral-950 font-mono text-xs text-neutral-200"
-              >
-                <span>{target}</span>
-                <span className="text-emerald-400 text-xs">AUTHORIZED</span>
+            {engine.scopePolicy.targets.length === 0 ? (
+              <div className="p-3 text-center text-xs text-neutral-400 font-mono border border-neutral-800/80 rounded bg-neutral-950">
+                No targets configured. Add an authorized target below.
               </div>
-            ))}
+            ) : (
+              engine.scopePolicy.targets.map((target, idx) => {
+                const isPrimary = engine.targetUrl === target;
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between p-2.5 rounded border transition-colors ${
+                      isPrimary
+                        ? 'border-red-900/60 bg-red-950/20'
+                        : 'border-neutral-800 bg-neutral-950'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate pr-2">
+                      <button
+                        onClick={() => handleSelectPrimary(target)}
+                        title={isPrimary ? 'Active target for scans' : 'Click to set as active target'}
+                        className={`text-xs font-mono px-1.5 py-0.5 rounded border ${
+                          isPrimary
+                            ? 'bg-red-950 text-red-400 border-red-800 font-semibold'
+                            : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-neutral-200'
+                        }`}
+                      >
+                        {isPrimary ? 'ACTIVE' : 'SELECT'}
+                      </button>
+                      <span className="font-mono text-xs text-neutral-200 truncate">{target}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-emerald-400 text-xs font-mono hidden sm:inline">AUTHORIZED</span>
+                      <button
+                        onClick={() => handleDeleteTarget(target)}
+                        title={`Delete ${target} from scope`}
+                        className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-neutral-900 transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           <div className="flex items-center gap-2 pt-2">

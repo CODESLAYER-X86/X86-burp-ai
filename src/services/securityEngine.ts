@@ -187,6 +187,31 @@ export class SecurityEngineService {
     }
   }
 
+  public addTarget(target: string) {
+    if (target && !this.scopePolicy.targets.includes(target)) {
+      this.scopePolicy.targets.push(target);
+      this.logEvent('scope_updated', this.phase, `Added target to authorized scope: ${target}`);
+      this.notify();
+    }
+  }
+
+  public removeTarget(target: string) {
+    this.scopePolicy.targets = this.scopePolicy.targets.filter(t => t !== target);
+    if (this.targetUrl === target && this.scopePolicy.targets.length > 0) {
+      this.targetUrl = this.scopePolicy.targets[0];
+    }
+    this.logEvent('scope_updated', this.phase, `Removed target from scope: ${target}`);
+    this.notify();
+  }
+
+  public setPrimaryTarget(target: string) {
+    if (this.scopePolicy.targets.includes(target)) {
+      this.targetUrl = target;
+      this.logEvent('primary_target_changed', this.phase, `Active target set to: ${target}`);
+      this.notify();
+    }
+  }
+
   public logEvent(event_type: string, phase: string, summary: string, details?: Record<string, any>) {
     this.activityLogs.unshift({
       id: `evt_${Date.now()}_${Math.random().toString(36).substring(7)}`,
