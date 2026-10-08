@@ -34,7 +34,7 @@ export const RepeaterTab: React.FC<RepeaterTabProps> = ({ engine }) => {
     setHeaders(newHeaders);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     // Parse headers
     const headerMap: Record<string, string> = {};
     headers.split('\n').forEach(line => {
@@ -44,7 +44,7 @@ export const RepeaterTab: React.FC<RepeaterTabProps> = ({ engine }) => {
       }
     });
 
-    const res = engine.replayRequest(method, url, headerMap, body);
+    const res = await engine.replayRequest(method, url, headerMap, body);
     setResponse(res);
   };
 

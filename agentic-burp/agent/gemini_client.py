@@ -73,6 +73,10 @@ class GeminiClient:
     def _mock_reasoning_response(self, prompt: str, tools: Optional[List[Dict[str, Any]]]) -> Dict[str, Any]:
         """Deterministic reasoning simulation for unit tests and local labs."""
         p_low = prompt.lower()
+        import re
+        ep_matches = re.findall(r'"(GET|POST|PUT|DELETE)\s+([^"]+)"', prompt)
+        dyn_ep = f"{ep_matches[0][0]} {ep_matches[0][1]}" if ep_matches else ""
+
         if "discovery" in p_low:
             decision = {
                 "action": "crawl",
@@ -80,6 +84,15 @@ class GeminiClient:
                 "arguments": {"max_depth": 2, "max_pages": 30},
                 "reasoning_summary": "Initiating discovery crawl to map authorized target attack surface.",
                 "confidence": 0.95
+            }
+        elif dyn_ep:
+            det = "sqli" if any(k in dyn_ep.lower() for k in ["id", "cat", "item", "page", "sort"]) else "xss"
+            decision = {
+                "action": "investigate",
+                "tool": "run_detector",
+                "arguments": {"detector": det, "target": dyn_ep},
+                "reasoning_summary": f"Targeting dynamically discovered attack surface vector on {dyn_ep}.",
+                "confidence": 0.88
             }
         elif "investigation" in p_low or "candidate" in p_low:
             decision = {

@@ -99,10 +99,22 @@ class Executor:
                 obs = Observation(category="detector_error", source="executor", summary=f"Detector '{detector_name}' not found.")
                 return False, obs, {"error": "DETECTOR_NOT_FOUND"}
 
-            # Build SecurityContext
+            # Build SecurityContext dynamically from discovered endpoint
             ep = current_endpoint or Endpoint(method="GET", host="127.0.0.1", port=8080, path="/api/profile", parameters=["id"])
-            breq = baseline_req or HTTPRequest(method="GET", url=ep.canonical_url + "?id=101")
-            bresp = baseline_resp or HTTPResponse(status_code=200, body=b'{"id": 101, "name": "Alice"}')
+            if not baseline_req:
+                url_with_params = ep.canonical_url
+                if ep.parameters and "?" not in url_with_params:
+                    url_with_params += "?" + "&".join(f"{p}=1" for p in ep.parameters)
+                breq = HTTPRequest(method=ep.method, url=url_with_params)
+            else:
+                breq = baseline_req
+
+            if not baseline_resp:
+                bresp, _ = await self.http_client.execute(breq)
+                if not bresp:
+                    bresp = HTTPResponse(status_code=200, body=b'{"status": "ok"}')
+            else:
+                bresp = baseline_resp
 
             sec_context = SecurityContext(
                 assessment_id=assessment_id,

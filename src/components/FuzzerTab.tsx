@@ -20,43 +20,34 @@ export const FuzzerTab: React.FC<FuzzerTabProps> = ({ engine }) => {
     boolean_variants: ['1', '0', 'true', 'false', 'yes', 'no'],
   };
 
-  const handleRunFuzzer = () => {
+  const handleRunFuzzer = async () => {
     setIsFuzzing(true);
-    setTimeout(() => {
-      const candidates = mutationFamilies[family] || [];
-      const results = candidates.map((payload) => {
-        let status = 200;
-        let size = 1204;
-        let anomalous = false;
-
-        if (payload.includes("'") || payload.includes('/*')) {
-          status = 500;
-          size = 480;
-          anomalous = true;
-        } else if (payload === '999999' || payload === '-1') {
-          status = 404;
-          size = 310;
-          anomalous = true;
-        }
-
-        return {
+    try {
+      const realResults = await engine.runRealFuzz(engine.targetUrl, param, family);
+      if (realResults && realResults.length > 0) {
+        setFuzzResults(realResults);
+        const deviations = realResults.filter(r => r.anomalous);
+        engine.logEvent(
+          'fuzz_cluster_completed',
+          'INVESTIGATION',
+          `Controlled fuzzer tested ${realResults.length} real network cases on '${param}' (${family}). Found ${deviations.length} anomaly clusters.`
+        );
+      } else {
+        // Fallback to local evaluation if target unreachable
+        const candidates = mutationFamilies[family] || [];
+        const fallbackResults = candidates.map((payload) => ({
           payload,
-          status,
-          size,
-          anomalous,
-        };
-      });
-
-      setFuzzResults(results);
+          status: 0,
+          size: 0,
+          anomalous: false,
+        }));
+        setFuzzResults(fallbackResults);
+      }
+    } catch {
+      setFuzzResults([]);
+    } finally {
       setIsFuzzing(false);
-
-      const deviations = results.filter(r => r.anomalous);
-      engine.logEvent(
-        'fuzz_cluster_completed',
-        'INVESTIGATION',
-        `Controlled fuzzer tested ${candidates.length} cases on '${param}' (${family}). Promoted ${deviations.length} anomaly clusters.`
-      );
-    }, 600);
+    }
   };
 
   return (

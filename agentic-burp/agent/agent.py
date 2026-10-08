@@ -88,11 +88,23 @@ class Agent:
         decision = await self.planner.decide(current_phase, context, available_tools)
         self._emit_event("llm_decision_made", decision.to_dict())
 
+        # Select current endpoint from discovered inventory if running detector
+        target_ep = None
+        if hasattr(self, "_discovered_endpoint_objects") and self._discovered_endpoint_objects:
+            target_str = str(decision.arguments.get("target", ""))
+            matched = [ep for ep in self._discovered_endpoint_objects if ep.path in target_str]
+            target_ep = matched[0] if matched else self._discovered_endpoint_objects[0]
+
         # 3. EXECUTE APPROVED TOOL THROUGH SECURITY GATE
         success, obs, raw_result = await self.executor.execute(
             assessment_id=self.assessment_id,
-            decision=decision
+            decision=decision,
+            current_endpoint=target_ep
         )
+
+        if "endpoints" in raw_result and isinstance(raw_result["endpoints"], list):
+            self._discovered_endpoint_objects = raw_result["endpoints"]
+            self.memory.endpoints = [ep.full_path for ep in self._discovered_endpoint_objects]
 
         # 4. RECORD RESULTS TO MEMORY AND PERSISTENT STORAGE
         if obs:
