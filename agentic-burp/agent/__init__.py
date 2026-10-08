@@ -12,6 +12,12 @@ from .credentials import GeminiProject, load_gemini_projects_from_env
 from .state import AgentState
 from .decisions import AgentDecision
 
+# Dual-Agent Subsystem
+from .protocol import LeaderPlan, GemmaActionDecision, DualAgentExchange
+from .leader import TeamLeader
+from .gemma_agent import GemmaSecurityAgent
+from .coordinator import DualAgentCoordinator
+
 __all__ = [
     "Agent",
     "Planner",
@@ -29,4 +35,10 @@ __all__ = [
     "load_gemini_projects_from_env",
     "AgentState",
     "AgentDecision",
+    "LeaderPlan",
+    "GemmaActionDecision",
+    "DualAgentExchange",
+    "TeamLeader",
+    "GemmaSecurityAgent",
+    "DualAgentCoordinator",
 ]
